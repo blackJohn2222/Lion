@@ -1,0 +1,7 @@
+{
+  "name": "Network",
+  "references": [
+    "Core",
+    "Unity.Networking.Transport"
+  ]
+}

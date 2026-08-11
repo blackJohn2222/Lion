@@ -1,0 +1,8 @@
+{
+  "name": "UI",
+  "references": [
+    "Core",
+    "Network",
+    "Gameplay"
+  ]
+}

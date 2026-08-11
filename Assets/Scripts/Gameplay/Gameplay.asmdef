@@ -1,0 +1,7 @@
+{
+  "name": "Gameplay",
+  "references": [
+    "Core",
+    "Network"
+  ]
+}
