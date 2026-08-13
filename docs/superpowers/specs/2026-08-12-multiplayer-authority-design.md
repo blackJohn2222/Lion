@@ -55,12 +55,80 @@ event Action<ulong> OnClientDisconnected;  // 服务器：有客户端断开
 public interface IMessage
 {
     ulong SenderId { get; set; }   // 所有消息自带发送者
+    MessageType Type { get; }      // 消息类自报 ID（字典工厂写 ID 用）
+    void Write(DataStreamWriter writer);   // 分布式：消息类自己写字段
+    void Read(DataStreamReader reader);    // 分布式：消息类自己读字段
 }
 ```
 
 说明：Host 模式不需要新接口方法——Host 玩家也是 `ConnectToServer("127.0.0.1", port)` 连自己。接口保持纯传输职责，服务器/Host 的区别是应用层组装方式。
 
-## 4. 消息协议（多人化）
+## 4. 消息协议（多人化 + Card 借鉴）
+
+### 借鉴决策汇总（2026-08-12 用户确认）
+
+| # | 借鉴点 | 决策 |
+|---|---|---|
+| 1 | ID 分段（1xxx 客户端指令 / 2xxx 服务器通知） | ✅ 学 |
+| 2 | 消息类带 Type 属性 | ✅ 保留（无 NGO，无法学 Card 的注册绑定） |
+| 3 | 共享协议常量文件 | ✅ 天然如此（Network 程序集两端共用） |
+| 4 | 服务器强制覆盖身份 | ✅ 学——统一入口一行覆盖所有消息 |
+| 5 | 连接审批 | ❌ 不学（JoinRequest 校验够用，YAGNI） |
+| 6 | 指令排队 | ❌ 不学（YAGNI，玩法复杂后再加） |
+| 7 | 双注册表对称分发 | ✅ 学——分发也用字典注册表 |
+| 8 | 离线模式 | ❌ 不学（YAGNI，测试用 FakeTransport 替代） |
+| 9 | 网络帧 tick | ❌ 不学（YAGNI，每帧 Pump 够用） |
+
+### ID 分段（借鉴 GameAction.cs 风格）
+
+```
+1xxx = 客户端 → 服务器的指令
+2xxx = 服务器 → 客户端的通知
+```
+
+| ID | 消息 | 方向 |
+|---|---|---|
+| 1001 | JoinRequest | 客户端→服务器 |
+| 1002 | JoinResponse | 服务器→客户端 |
+| 1003 | PlayerStateSync | 双向 |
+| 1004 | ChatMessage | 双向 |
+| 1005 | DisconnectNotice | 双向 |
+| 2001 | PlayerJoinedNotice | 服务器→所有客户端 |
+| 2002 | PlayerLeftNotice | 服务器→所有客户端 |
+| 2003 | SnapshotMessage | 服务器→客户端 |
+
+### 序列化（字典工厂，借鉴 Card 注册表模式）
+
+```csharp
+public static class Serializer
+{
+    // ID → 创建对应消息类型空对象（字典工厂，替代 switch）
+    private static readonly Dictionary<MessageType, Func<IMessage>> _factories = new()
+    {
+        [MessageType.JoinRequest]       = () => new JoinRequest(),
+        // ... 8 个
+    };
+
+    public static byte[] Serialize(IMessage msg)
+    {
+        var writer = new DataStreamWriter(64, Allocator.Temp);
+        writer.WriteByte((byte)msg.Type);   // 写 ID：消息类自报
+        msg.Write(writer);                  // 字段：消息类自己写
+        return writer.AsNativeArray().ToArray();
+    }
+
+    public static IMessage Deserialize(byte[] data)
+    {
+        var reader = new DataStreamReader(data);
+        var id = (MessageType)reader.ReadByte();
+        if (!_factories.TryGetValue(id, out var factory))
+            throw new InvalidOperationException($"未知消息类型: {id}");
+        var msg = factory();                // 查表创建（类型由 ID 确定）
+        msg.Read(reader);                   // 字段：消息类自己读
+        return msg;
+    }
+}
+```
 
 ### 现有消息（保留并升级语义）
 
@@ -69,7 +137,7 @@ public interface IMessage
 | JoinRequest | 客户端→服务器 | 可靠 | 玩家名字 |
 | JoinResponse | 服务器→客户端 | 可靠 | 分配的玩家 ID + 当前玩家列表 |
 | PlayerStateSync | 双向 | 不可靠 | 玩家ID + 位置 + 旋转 |
-| ChatMessage | 双向 | 可靠 | 文本 |
+| ChatMessage | 双向 | 可靠 | 文本 + TargetId（0=广播，非0=私信） |
 | DisconnectNotice | 双向 | 可靠 | 断开原因 |
 
 ### 新增消息
@@ -92,21 +160,49 @@ public class GameServer
     private readonly INetworkTransport _transport;
     private readonly Dictionary<ulong, PlayerInfo> _players = new();  // 玩家表
     private ulong _nextPlayerId = 1;   // 玩家 ID 分配器（递增，永不重复）
+    private readonly Dictionary<MessageType, Action<ClientConnection, IMessage>> _handlers = new();  // 双注册表分发（借鉴 Card）
 
     public void Start(int port);   // 启动服务器（绑定 transport 事件）
 
     // transport 事件驱动：
     // OnClientConnected      → 登记连接
     // OnClientDisconnected   → 清理玩家表，广播 PlayerLeftNotice
-    // OnMessageReceived      → 按类型分发：
+    // OnMessageReceived      → 统一入口：先强制覆盖 SenderId，再按类型分发
     //     JoinRequest       → 分配 ID，发 JoinResponse（带玩家列表），广播 PlayerJoinedNotice
-    //     PlayerStateSync   → 校验 SenderId 后，广播给所有其他客户端
-    //     ChatMessage       → 原样广播
+    //     PlayerStateSync   → 广播给所有其他客户端
+    //     ChatMessage       → 按 TargetId 广播或定向转发
     //     DisconnectNotice  → 清理
 }
 ```
 
-### 权威核心流程（转发模型）
+### 身份校验：统一入口强制覆盖（借鉴 Card ReceiveChat，GameServer.cs:479）
+
+```csharp
+void OnMessageReceived(IMessage msg)
+{
+    msg.SenderId = _connToPlayer[当前连接];   // 身份由连接决定，不由客户端声明——一行覆盖所有消息类型
+    Dispatch(msg);                            // 再按注册表分发处理
+}
+```
+
+原理：客户端不可信——消息里填的身份一律不算数，服务器用**连接**查真实玩家并覆盖。Card 只有聊天消息带身份字段所以只覆盖聊天；我们的消息全带 SenderId，统一入口一行覆盖全部，更简洁。
+
+### 双注册表分发（借鉴 Card GameServer/GameClient registered_commands）
+
+```csharp
+// 注册：ID → 处理函数（替代 switch）
+_handlers[MessageType.ChatMessage] = OnChatMessage;
+_handlers[MessageType.PlayerStateSync] = OnPlayerStateSync;
+
+// 分发：查表调用
+void Dispatch(IMessage msg)
+{
+    if (_handlers.TryGetValue(msg.Type, out var handler))
+        handler(当前连接, msg);
+}
+```
+
+加消息 = 注册一行，零改分发逻辑。
 
 ```
 客户端 A 移动 → SendToServer(PlayerStateSync)
