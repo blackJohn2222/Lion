@@ -2,6 +2,7 @@
   "name": "Network",
   "references": [
     "Core",
-    "Unity.Networking.Transport"
+    "Unity.Networking.Transport",
+    "Unity.Collections"
   ]
 }

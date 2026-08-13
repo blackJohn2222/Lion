@@ -9,6 +9,7 @@ namespace Network
         
         void StartServer(int port);
         void ConnectToServer(string ip, int port);
+        
         void Disconnect();
         void Pump();
 
@@ -16,10 +17,12 @@ namespace Network
         void BroadcastToClients(IMessage msg);
         void SendToClient(ulong clientId, IMessage msg);
 
+        //共同事件
         event Action OnConnected;
         event Action OnDisconnected;
         event Action<IMessage> OnMessageReceived;
 
+        //服务器事件
         event Action<ulong> OnClientConnected;
         event Action<ulong> OnClientDisconnected;
     }

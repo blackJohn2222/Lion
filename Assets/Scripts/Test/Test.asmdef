@@ -1,7 +1,9 @@
 {
   "name": "Test",
   "references": [
-    "Core"
+    "Core",
+    "Network",
+    "Unity.Collections"
   ],
   "includePlatforms": [
     "Editor"

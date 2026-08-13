@@ -100,7 +100,7 @@ public interface IMessage
 ### 序列化（字典工厂，借鉴 Card 注册表模式）
 
 ```csharp
-public static class Serializer
+public static class SerializeTool
 {
     // ID → 创建对应消息类型空对象（字典工厂，替代 switch）
     private static readonly Dictionary<MessageType, Func<IMessage>> _factories = new()
@@ -112,19 +112,21 @@ public static class Serializer
     public static byte[] Serialize(IMessage msg)
     {
         var writer = new DataStreamWriter(64, Allocator.Temp);
-        writer.WriteByte((byte)msg.Type);   // 写 ID：消息类自报
+        writer.WriteUShort((ushort)msg.Type);   // 写 ID：消息类自报（MessageType 为 ushort）
         msg.Write(writer);                  // 字段：消息类自己写
         return writer.AsNativeArray().ToArray();
     }
 
     public static IMessage Deserialize(byte[] data)
     {
-        var reader = new DataStreamReader(data);
-        var id = (MessageType)reader.ReadByte();
+        var nativeArray = new NativeArray<byte>(data, Allocator.Temp);   // byte[] → NativeArray（构造要求）
+        var reader = new DataStreamReader(nativeArray);
+        var id = (MessageType)reader.ReadUShort();
         if (!_factories.TryGetValue(id, out var factory))
             throw new InvalidOperationException($"未知消息类型: {id}");
         var msg = factory();                // 查表创建（类型由 ID 确定）
         msg.Read(reader);                   // 字段：消息类自己读
+        nativeArray.Dispose();
         return msg;
     }
 }
