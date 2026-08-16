@@ -7,12 +7,12 @@ namespace Network
         public bool IsServer { get; }
         public bool IsConnected { get; }
         
-        public void StartServer(int port)
+        public void StartServer(ushort port)
         {
             throw new NotImplementedException();
         }
 
-        public void ConnectToServer(string ip, int port)
+        public void ConnectToServer(string ip, ushort port)
         {
             throw new NotImplementedException();
         }

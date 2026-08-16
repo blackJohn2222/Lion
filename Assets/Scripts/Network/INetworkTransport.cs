@@ -7,8 +7,8 @@ namespace Network
         bool IsServer { get; }
         bool IsConnected { get; }
         
-        void StartServer(int port);
-        void ConnectToServer(string ip, int port);
+        void StartServer(ushort port);
+        void ConnectToServer(string ip, ushort port);
         
         void Disconnect();
         void Pump();
