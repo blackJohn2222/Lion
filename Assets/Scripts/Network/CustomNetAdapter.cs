@@ -19,6 +19,14 @@ namespace Network
         
         public bool IsServer => _isServer;
         public bool IsConnected => _connected;
+                
+        //共同事件
+        public event Action OnConnected;
+        public event Action OnDisconnected;
+        public event Action<ulong, IMessage> OnMessageReceived;
+        //服务器事件
+        public event Action<ulong> OnClientConnected;
+        public event Action<ulong> OnClientDisconnected;
         
         //------------配置------------
         public void StartServer(ushort port)   //服务器
@@ -105,7 +113,18 @@ namespace Network
                         nativeArray.Dispose();
                         
                         IMessage msg = SerializeTool.Deserialize(bytes);
-                        OnMessageReceived?.Invoke(msg);
+
+                        // 查来源：服务器查连接表，客户端收到的都来自服务器（0）
+                        ulong senderId = 0;
+                        if (_isServer)
+                        {
+                            foreach (var pair in _clients)
+                            {
+                                if (pair.Value == connection) { senderId = pair.Key; break; }
+                            }
+                        }
+
+                        OnMessageReceived?.Invoke(senderId, msg);
                         break;
                 }
             }
@@ -145,12 +164,5 @@ namespace Network
             }
         }
         
-        //共同事件
-        public event Action OnConnected;
-        public event Action OnDisconnected;
-        public event Action<IMessage> OnMessageReceived;
-        //服务器事件
-        public event Action<ulong> OnClientConnected;
-        public event Action<ulong> OnClientDisconnected;
     }
 }

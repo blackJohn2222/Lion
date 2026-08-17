@@ -7,6 +7,14 @@ namespace Network
         bool IsServer { get; }
         bool IsConnected { get; }
         
+        //共同事件
+        event Action OnConnected;
+        event Action OnDisconnected;
+        event Action<ulong, IMessage> OnMessageReceived;
+
+        //服务器事件
+        event Action<ulong> OnClientConnected;
+        event Action<ulong> OnClientDisconnected;        
         void StartServer(ushort port);
         void ConnectToServer(string ip, ushort port);
         
@@ -16,14 +24,6 @@ namespace Network
         void SendToServer(IMessage msg);
         void BroadcastToClients(IMessage msg);
         void SendToClient(ulong clientId, IMessage msg);
-
-        //共同事件
-        event Action OnConnected;
-        event Action OnDisconnected;
-        event Action<IMessage> OnMessageReceived;
-
-        //服务器事件
-        event Action<ulong> OnClientConnected;
-        event Action<ulong> OnClientDisconnected;
+        
     }
 }

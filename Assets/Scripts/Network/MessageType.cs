@@ -5,14 +5,14 @@ namespace Network
     {
         // --- 客户端 → 服务器 ---
         JoinRequest = 1001,
-        JoinResponse = 1002,
-        PlayerStateSync = 1003,
-        ChatMessage = 1004,
-        DisconnectNotice = 1005,
+        PlayerStateSync = 1002,
+        ChatMessage = 1003,         // 双方都有
+        DisconnectNotice = 1004,
 
         // --- 服务器 → 客户端 ---
         PlayerJoinedNotice = 2001,
         PlayerLeftNotice = 2002,
-        SnapshotMessage = 2003
+        SnapshotMessage = 2003,
+        JoinResponse = 2004
     }
 }

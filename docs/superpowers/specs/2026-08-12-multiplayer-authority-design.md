@@ -54,11 +54,17 @@ event Action<ulong> OnClientDisconnected;  // 服务器：有客户端断开
 ```csharp
 public interface IMessage
 {
-    ulong SenderId { get; set; }   // 所有消息自带发送者
+    ulong SenderId { get; set; }   // 所有消息自带发送者（0 = 服务器，1+ = 玩家）
     MessageType Type { get; }      // 消息类自报 ID（字典工厂写 ID 用）
     void Write(DataStreamWriter writer);   // 分布式：消息类自己写字段
     void Read(DataStreamReader reader);    // 分布式：消息类自己读字段
 }
+```
+
+**OnMessageReceived 事件升级**（传输层查表带出真实 senderId）：
+
+```csharp
+event Action<ulong senderId, IMessage msg> OnMessageReceived;   // senderId：0=服务器，1+=玩家（连接查表得出）
 ```
 
 说明：Host 模式不需要新接口方法——Host 玩家也是 `ConnectToServer("127.0.0.1", port)` 连自己。接口保持纯传输职责，服务器/Host 的区别是应用层组装方式。
@@ -177,13 +183,35 @@ public class GameServer
 }
 ```
 
-### 身份校验：统一入口强制覆盖（借鉴 Card ReceiveChat，GameServer.cs:479）
+### 身份校验：传输层带 senderId + 服务器强制覆盖（借鉴 Card ReceiveChat，GameServer.cs:479）
+
+**SenderId 取值约定**：
+```
+0    = 服务器（官方消息）
+1+   = 玩家（服务器 _nextPlayerId 分配）
+```
+
+**事件签名**：`OnMessageReceived` 改为 `Action<ulong senderId, IMessage msg>`——传输层在 Data 事件里查连接表得出真实 senderId，作为事件参数带出：
 
 ```csharp
-void OnMessageReceived(IMessage msg)
+// CustomNetAdapter.Data 分支：
+ulong senderId = 0;                                    // 客户端：收到的都来自服务器（0）
+if (_isServer)                                         // 服务器：查 _clients 表
+    foreach (var pair in _clients)
+        if (pair.Value == connection) { senderId = pair.Key; break; }
+OnMessageReceived?.Invoke(senderId, msg);
+```
+
+**职责分工**：
+- 传输层：管"连接"——查表得出真实 senderId（可信，来自连接表）
+- GameServer：管"业务"——用 senderId 覆盖 msg.SenderId（防伪造）
+- GameClient：发送时自动填 msg.SenderId = LocalPlayerId（方案 A：传输层不填，GameClient 填）
+
+```csharp
+void OnMessageReceived(ulong senderId, IMessage msg)
 {
-    msg.SenderId = _connToPlayer[当前连接];   // 身份由连接决定，不由客户端声明——一行覆盖所有消息类型
-    Dispatch(msg);                            // 再按注册表分发处理
+    msg.SenderId = senderId;   // 身份由连接决定，不由客户端声明——覆盖所有消息类型
+    Dispatch(msg);             // 再按注册表分发处理
 }
 ```
 
@@ -200,21 +228,31 @@ _handlers[MessageType.PlayerStateSync] = OnPlayerStateSync;
 void Dispatch(IMessage msg)
 {
     if (_handlers.TryGetValue(msg.Type, out var handler))
-        handler(当前连接, msg);
+        handler(msg);
 }
 ```
 
 加消息 = 注册一行，零改分发逻辑。
 
 ```
-客户端 A 移动 → SendToServer(PlayerStateSync)
-    → 服务器 OnMessageReceived → 校验（SenderId == 该连接真实 ID？不匹配则丢弃）
-    → BroadcastToClients（除 A 自己）→ B、C 收到
+客户端 A 移动 → SendToServer(PlayerStateSync)（SenderId = A 的 LocalPlayerId）
+    → 服务器 Data 事件 → 查连接表得 senderId = A 的真实 ID
+    → OnMessageReceived(senderId, msg) → 覆盖 msg.SenderId = senderId
+    → 按注册表分发 → BroadcastToClients（除 A 自己）→ B、C 收到
 ```
 
-- **玩家 ID 分配**：`_nextPlayerId++`，服务器权威的唯一 ID 来源
-- **SenderId 校验**：客户端可能伪造"我是别的玩家"——服务器检查消息 SenderId 与连接真实 ID 是否一致，不一致丢弃。这是权威的最基本防线
-- 位置校验（更严格的反作弊）第一周不做，只做 SenderId 校验
+- **玩家 ID 分配**：`_nextPlayerId++`，服务器权威的唯一 ID 来源；0 保留给服务器身份
+- **SenderId 权威**：传输层查连接表得出真实 senderId（可信来源），GameServer 覆盖 msg.SenderId——客户端伪造无效。这是权威的最基本防线
+
+## 待办：位置校验（反作弊，Day 3 后做）
+
+> 状态：已记录，未实现。等 Day 3 移动速度参数确定后实现。
+
+- **漏洞**：客户端上报 PlayerStateSync 位置，服务器只转发不校验——作弊者可报假位置（瞬移/穿墙）
+- **位置**：`GameServer.OnPlayerStateSync`，广播前插入校验（通过才 BroadcastToClients，不通过丢弃/纠正）
+- **方案**：速度校验——服务器记录每个玩家上一帧位置 `Dictionary<ulong, Vector3> _lastPositions`，检查"本帧移动距离 ≤ 最大速度 × 帧时间"（服务器自己计时）
+- **依赖**：Day 3 角色的最大移动速度参数 + 服务器计时逻辑
+- **升级选项**（更硬核，暂不考虑）：服务器权威移动——客户端只发输入，服务器算位置（影响手感调优节奏）
 
 ## 6. GameClient 模块设计
 

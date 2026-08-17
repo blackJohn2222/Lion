@@ -44,7 +44,7 @@ namespace Network
 
         public event Action OnConnected;
         public event Action OnDisconnected;
-        public event Action<IMessage> OnMessageReceived;
+        public event Action<ulong, IMessage> OnMessageReceived;
         
         
         public event Action<ulong> OnClientConnected;
