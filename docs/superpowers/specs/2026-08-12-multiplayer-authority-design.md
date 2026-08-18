@@ -298,6 +298,38 @@ Step 6：Day 3 控制器接入 → Day 4 多人可见
 
 > Step 5 顺序说明：联调紧随宿主（高风险早暴露），状态机最后（低风险增强）。最小联调先确认网络能通，再安心做状态机。
 
+## 待办：Editor 多实例联调（暂缓，原因未定）
+
+> 状态：**已暂缓**。触发方式不可靠，根因未定位（可能是输入/焦点/Input System 配置，未确诊）。待定位根因，或 Day 4 UI 有按钮后再调。
+
+### 已完成的前置
+- ✅ `NetworkBootstrap` 宿主（`Assets/Scripts/Gameplay/NetworkBootstrap.cs`）：Update 每帧 Pump + StartServer/StartClient/StartHost 三方法
+- ✅ GameServer/GameClient 调试日志（`Assets/Scripts/Network/Game/`）：`[Server] 玩家加入` / `[Client] 我加入了`（联调验证用，保留）
+
+### 已确认的事实（调试记录）
+- Update 正常运行（临时 `Debug.Log("111")` 每帧出现）
+- 按键（H/C，用 Input System 的 `Keyboard.current`）**未触发**——无 `[Bootstrap] Start Host 被调用` 日志
+- 根因未定位：可能是虚拟玩家窗口焦点、Input System 设备未激活、或配置问题
+
+### 已移除的调试代码（勿再加回）
+- 快捷键 H/C（`Keyboard.current`）——Input 类与 Input System 冲突 + 虚拟玩家焦点问题
+- `Debug.Log("111")` 刷屏验证
+- ContextMenu 调试入口（Start Host/Start Server/Start Client）——已从 NetworkBootstrap 移除
+
+### 涉及的文件（联调时要点）
+- `Assets/Scripts/Gameplay/NetworkBootstrap.cs`——宿主，三个 Start 方法
+- `Assets/Scripts/Network/Transport/CustomNetAdapter.cs`——真实传输（UTP）
+- `Assets/Scripts/Network/Game/GameServer.cs`——服务器逻辑（`[Server]` 日志在这）
+- `Assets/Scripts/Network/Game/GameClient.cs`——客户端逻辑（`[Client]` 日志在这）
+- 触发方式：暂无（UI 按钮是 Day 4 的事）；可考虑"代码自动分配角色"（主窗口 Host / 虚拟玩家 Client）或打包 exe 当 Client
+
+### 联调验收清单（验证网络是否通）
+1. Host 启动（StartServer 或 StartHost）→ 无报错、IsConnected 为 true
+2. Client 连接（StartClient）→ 连上 127.0.0.1:7777
+3. Host 出现 `[Server] 玩家 <名字> 加入，ID=1，房间共 1 人`
+4. Client 出现 `[Client] 我加入了，ID=1，房间有 0 人`
+5. 断线：Client 断开 → Host 出现玩家离开处理（广播 PlayerLeftNotice）
+
 ## 8. 验收策略（三层递进）
 
 1. **纯逻辑单元测试**（最快，每次改动跑）：
