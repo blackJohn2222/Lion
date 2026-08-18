@@ -292,11 +292,18 @@ Step 1：接口补丁（+2 事件 + SenderId）→ 编译过 + NgoAdapter 空壳
 Step 2：消息协议（新增 3 种 + 升级现有）→ 序列化单元测试
 Step 3：CustomNetAdapter（连接管理 + 双通道 + 心跳断线检测）
 Step 4：GameServer（玩家管理 + 广播 + SenderId 校验）→ FakeTransport 单元测试
-Step 5：NetworkBootstrap 宿主（串链条）→ 最小联调（30 分钟确认能通）→ 连接状态机 → 完整联调
+Step 5：NetworkBootstrap 宿主（串链条）→ 最小联调（30 分钟确认能通）→ 完整联调
 Step 6：Day 3 控制器接入 → Day 4 多人可见
 ```
 
-> Step 5 顺序说明：联调紧随宿主（高风险早暴露），状态机最后（低风险增强）。最小联调先确认网络能通，再安心做状态机。
+> Step 5 顺序说明：联调紧随宿主（高风险早暴露）。最小联调先确认网络能通，再安心做后续。
+>
+> **2026-08-12 决策：取消独立的连接状态机（ConnectionStateMachine）**——理由：
+> - `Disconnecting` 状态冗余（断开无持续过程，瞬间完成）
+> - 连接状态由 `IsConnected` 布尔 + `OnConnected`/`OnDisconnected` 事件已充分表达
+> - "连接中"中间态（转圈/禁按钮）由全局 `GameStateManager.Connecting` 覆盖（粗粒度够用）
+> - 连接失败处理 = `Connecting → MainMenu/Disconnected`（全局状态机表达）
+> - 衔接：`CustomNetAdapter.OnConnected` → 全局 InGame；`OnDisconnected` → 全局 Disconnected；发起连接 → 全局 Connecting（衔接代码 Day 4 接 UI 时做，放宿主或 GameClient）
 
 ## 待办：Editor 多实例联调（暂缓，原因未定）
 
