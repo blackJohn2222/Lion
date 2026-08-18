@@ -292,9 +292,11 @@ Step 1：接口补丁（+2 事件 + SenderId）→ 编译过 + NgoAdapter 空壳
 Step 2：消息协议（新增 3 种 + 升级现有）→ 序列化单元测试
 Step 3：CustomNetAdapter（连接管理 + 双通道 + 心跳断线检测）
 Step 4：GameServer（玩家管理 + 广播 + SenderId 校验）→ FakeTransport 单元测试
-Step 5：GameClient + Host 组装 → Editor 多实例验证
+Step 5：NetworkBootstrap 宿主（串链条）→ 最小联调（30 分钟确认能通）→ 连接状态机 → 完整联调
 Step 6：Day 3 控制器接入 → Day 4 多人可见
 ```
+
+> Step 5 顺序说明：联调紧随宿主（高风险早暴露），状态机最后（低风险增强）。最小联调先确认网络能通，再安心做状态机。
 
 ## 8. 验收策略（三层递进）
 
