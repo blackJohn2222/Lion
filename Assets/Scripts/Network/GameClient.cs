@@ -12,6 +12,7 @@ namespace Network
         private readonly Dictionary<MessageType, Action<IMessage>> _handlers = new();  // 双注册表
         
         public ulong LocalPlayerId => _localPlayerId;
+        public IReadOnlyDictionary<ulong, string> Players => _players;
         
         public GameClient(INetworkTransport transport, string playerName)
         {
