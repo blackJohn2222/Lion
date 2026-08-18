@@ -56,7 +56,7 @@ namespace Network
             ulong playerId = req.SenderId;
             _players[playerId] = req.PlayerName;
             
-            var response = new JoinResponse(playerId, GetPlayerList());
+            var response = new JoinResponse(playerId, GetPlayerList(playerId));
             _transport.SendToClient(playerId, response);
 
             var notice = new PlayerJoinedNotice(playerId, req.PlayerName);
@@ -82,11 +82,12 @@ namespace Network
         }
         
         //辅助函数
-        private List<PlayerInfo> GetPlayerList()
+        private List<PlayerInfo> GetPlayerList(ulong excludePlayerId = 0)
         {
             var list = new List<PlayerInfo>();
             foreach (var pair in _players)
-                list.Add(new PlayerInfo { PlayerId = pair.Key, PlayerName = pair.Value });
+                if (pair.Key != excludePlayerId)                 // 排除自己
+                    list.Add(new PlayerInfo { PlayerId = pair.Key, PlayerName = pair.Value });
             return list;
         }
     }
