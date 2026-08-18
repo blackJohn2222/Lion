@@ -55,6 +55,8 @@ namespace Network
             var req = (JoinRequest)message;
             ulong playerId = req.SenderId;
             _players[playerId] = req.PlayerName;
+
+            UnityEngine.Debug.Log($"[Server] 玩家 {req.PlayerName} 加入，ID={playerId}，房间共 {_players.Count} 人");
             
             var response = new JoinResponse(playerId, GetPlayerList(playerId));
             _transport.SendToClient(playerId, response);

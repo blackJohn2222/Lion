@@ -61,6 +61,8 @@ namespace Network
             _players.Clear();                                           // 清空旧列表
             foreach (var p in response.Players)
                 _players[p.PlayerId] = p.PlayerName;                    // 填房间快照
+
+            UnityEngine.Debug.Log($"[Client] 我加入了，ID={_localPlayerId}，房间有 {_players.Count} 人");
         }
 
         private void OnPlayerJoinedNotice(IMessage msg)

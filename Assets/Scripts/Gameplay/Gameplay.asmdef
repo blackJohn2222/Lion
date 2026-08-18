@@ -2,6 +2,7 @@
   "name": "Gameplay",
   "references": [
     "Core",
-    "Network"
+    "Network",
+    "Unity.InputSystem"
   ]
 }

@@ -1,5 +1,6 @@
 namespace Network
 {
+    // messaage的一个属性的列表
     // ID 分段：1xxx = 客户端→服务器指令，2xxx = 服务器→客户端通知
     public enum MessageType : ushort
     {
