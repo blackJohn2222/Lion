@@ -3,6 +3,7 @@
   "references": [
     "Core",
     "Network",
+    "Entity",
     "Unity.InputSystem"
   ]
 }
