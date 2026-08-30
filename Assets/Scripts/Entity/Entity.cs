@@ -23,5 +23,23 @@ namespace Entity
             states?.Step();
             base.Update();
         }
+        
+        public void Accelerate(Vector3 direction, float acceleration, float topSpeed, float turningDrag)
+        {
+            var projected = Vector3.Project(lateralVelocity, direction.normalized);
+            lateralVelocity = Vector3.Lerp(lateralVelocity, projected, turningDrag * Time.deltaTime);
+            
+            lateralVelocity += direction.normalized * (acceleration * Time.deltaTime);
+            
+            if (lateralVelocity.magnitude > topSpeed)
+            {
+                lateralVelocity = lateralVelocity.normalized * topSpeed;
+            }
+        }
+
+        public void Decelerate(float deceleration)
+        {
+            lateralVelocity = lateralVelocity.normalized * Mathf.Max(0f, lateralVelocity.magnitude - deceleration * Time.deltaTime);
+        }
     }
 }

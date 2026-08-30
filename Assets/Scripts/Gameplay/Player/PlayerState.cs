@@ -1,8 +1,8 @@
 using Entity;
 
-namespace Gameplay
+namespace Player
 {
-    public abstract class PlayerState : EntityState<Player>
-    {
+    public abstract class PlayerState : EntityState<Player>   {
+
     }
 }

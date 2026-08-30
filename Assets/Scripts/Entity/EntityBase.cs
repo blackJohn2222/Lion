@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Entity
@@ -31,6 +32,8 @@ namespace Entity
 
         protected virtual void Update()
         {
+            controller.Move(velocity * Time.deltaTime);
         }
+
     }
 }

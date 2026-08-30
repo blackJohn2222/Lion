@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Entity;
-using UnityEngine;
 
-namespace Gameplay
+
+namespace Player
 {
     public class PlayerStateManager : EntityStateManager<Player>
     {
@@ -10,7 +10,8 @@ namespace Gameplay
         {
             return new List<EntityState<Player>>
             {
-                new IdlePlayerState()
+                new IdlePlayerState(),
+                new WalkPlayerState()
             };
         }
     }
