@@ -17,10 +17,16 @@ namespace Player
         protected override void OnStep(Player entity)
         {
             Debug.Log("IdlePlayerState: stepping, timeSinceEntered = " + timeSinceEntered);
+            entity.SnapToGround();
             entity.SlowDown();
             if (entity.input.GetMovement().sqrMagnitude > 0 || entity.lateralVelocity.sqrMagnitude > 0)
             {
                 entity.states.Change<WalkPlayerState>();
+            }
+
+            if (!entity.isGrounded)
+            {
+                entity.states.Change<FallPlayerState>();
             }
         }
     }

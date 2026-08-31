@@ -11,7 +11,8 @@ namespace Player
             return new List<EntityState<Player>>
             {
                 new IdlePlayerState(),
-                new WalkPlayerState()
+                new WalkPlayerState(),
+                new FallPlayerState()
             };
         }
     }

@@ -22,12 +22,16 @@ namespace Player
         {
             var movement = input.GetMovement();
             var direction = new Vector3(movement.x, 0, movement.y);
-            Accelerate(direction, stats.current.acceleration, stats.current.topSpeed, stats.current.turningDrag);
+            Accelerate(direction, stats.current.maxAcceleration, stats.current.topSpeed);
         }
 
         public void SlowDown()
         {
-            Decelerate(stats.current.deceleration);
+            Decelerate(stats.current.friction, stats.current.stopSpeed);
         }
+        
+        public void Gravity() => base.Gravity(stats.current.gravity);
+
+        public void SnapToGround() => base.SnapToGround(stats.current.snapForce);
     }
 }

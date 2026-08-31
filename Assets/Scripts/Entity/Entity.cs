@@ -6,40 +6,85 @@ namespace Entity
     {
         public EntityStateManager<T> states { get; protected set; }
 
-        protected override void Awake()
+        protected virtual void Awake()
         {
-            base.Awake();
-
+            controller = GetComponent<CharacterController>();
             states = GetComponent<EntityStateManager<T>>();
             if (states == null)
             {
                 throw new MissingComponentException(
                     $"{GetType().Name} requires an EntityStateManager<{typeof(T).Name}> component.");
             }
+            
+            isGrounded = controller.isGrounded;
         }
 
-        protected override void Update()
+        protected virtual void Update()
         {
             states?.Step();
-            base.Update();
+            controller.Move(velocity * Time.deltaTime);
+            UpdateGround();
+        }
+
+        public virtual void UpdateGround()
+        {
+            var grounded = controller.isGrounded;
+            if (grounded != isGrounded)
+            {
+                isGrounded = grounded;
+                if (isGrounded)
+                {
+                    entityEvents?.OnGroundEnter?.Invoke();
+                }
+                else
+                {
+                    entityEvents?.OnGroundExit?.Invoke();
+                }
+            }
         }
         
-        public void Accelerate(Vector3 direction, float acceleration, float topSpeed, float turningDrag)
+        public void Accelerate(Vector3 direction, float maxAcceleration, float topSpeed)
         {
-            var projected = Vector3.Project(lateralVelocity, direction.normalized);
-            lateralVelocity = Vector3.Lerp(lateralVelocity, projected, turningDrag * Time.deltaTime);
-            
-            lateralVelocity += direction.normalized * (acceleration * Time.deltaTime);
-            
-            if (lateralVelocity.magnitude > topSpeed)
+            if (direction.sqrMagnitude > 0)
             {
-                lateralVelocity = lateralVelocity.normalized * topSpeed;
+                var dir = direction.normalized;
+                var dotSpeed = Vector3.Dot(dir, lateralVelocity);
+                var addSpeed = topSpeed - dotSpeed;
+                if (addSpeed > 0)
+                {
+                    var maxAccele = maxAcceleration * topSpeed * Time.deltaTime;
+                    lateralVelocity += dir * Mathf.Min(maxAccele, addSpeed);
+                }
             }
         }
 
-        public void Decelerate(float deceleration)
+        public void Decelerate(float friction, float stopSpeed)
         {
-            lateralVelocity = lateralVelocity.normalized * Mathf.Max(0f, lateralVelocity.magnitude - deceleration * Time.deltaTime);
+            var speed = lateralVelocity.magnitude;
+            if (speed <= 0)
+            {
+                return;
+            }
+            var control = Mathf.Max(speed, stopSpeed);
+            var drop = control * friction * Time.deltaTime;
+            var newspeed = Mathf.Max(0f, speed - drop);
+            lateralVelocity *= newspeed / speed;
+        }
+
+        public void SnapToGround(float snapForce)
+        {
+            if (isGrounded && verticalVelocity.y <= 0)
+            {
+                verticalVelocity = Vector3.down * snapForce;
+            }
+        }
+
+        public void Gravity(float gravity)
+        {
+            if (!isGrounded)
+            {
+                verticalVelocity += Vector3.down * gravity * Time.deltaTime;
+            }
         }
     }
 }

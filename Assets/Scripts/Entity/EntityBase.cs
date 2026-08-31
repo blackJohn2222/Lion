@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace Entity
@@ -6,6 +5,8 @@ namespace Entity
     [RequireComponent(typeof(CharacterController))]
     public abstract class EntityBase : MonoBehaviour
     {
+        public EntityEvents entityEvents;
+        
         public CharacterController controller { get; protected set; }
 
         public Vector3 velocity { get; protected set; }
@@ -23,17 +24,5 @@ namespace Entity
         }
 
         public bool isGrounded { get; protected set; }
-
-        protected virtual void Awake()
-        {
-            controller = GetComponent<CharacterController>();
-            isGrounded = controller.isGrounded;
-        }
-
-        protected virtual void Update()
-        {
-            controller.Move(velocity * Time.deltaTime);
-        }
-
     }
 }
