@@ -11,6 +11,8 @@ namespace Player
         public PlayerInputManager input { get; protected set; }
         public PlayerStatsManager stats { get; protected set; }
 
+        public PlayerEvents playerEvents;
+
         protected override void Awake()
         {
             base.Awake();
@@ -33,5 +35,18 @@ namespace Player
         public void Gravity() => base.Gravity(stats.current.gravity);
 
         public void SnapToGround() => base.SnapToGround(stats.current.snapForce);
+
+        public void Jump()
+        {
+            if (!isGrounded || !input.GetJumpDown(stats.current.jumpBufferWindow))
+            {
+                return;
+            }
+            
+            Jump(stats.current.jumpHeight, stats.current.gravity);
+            states.Change<FallPlayerState>();
+            
+            playerEvents?.OnJump?.Invoke();
+        }
     }
 }

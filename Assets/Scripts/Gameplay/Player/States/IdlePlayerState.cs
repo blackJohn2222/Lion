@@ -19,6 +19,7 @@ namespace Player
             Debug.Log("IdlePlayerState: stepping, timeSinceEntered = " + timeSinceEntered);
             entity.SnapToGround();
             entity.SlowDown();
+            entity.Jump();
             if (entity.input.GetMovement().sqrMagnitude > 0 || entity.lateralVelocity.sqrMagnitude > 0)
             {
                 entity.states.Change<WalkPlayerState>();

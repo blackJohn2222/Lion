@@ -86,5 +86,11 @@ namespace Entity
                 verticalVelocity += Vector3.down * gravity * Time.deltaTime;
             }
         }
+
+        public void Jump(float jumpHeight, float gravity)
+        {
+            var speed = Mathf.Sqrt(2f * jumpHeight * gravity);
+            verticalVelocity = Vector3.up * speed;
+        }
     }
 }

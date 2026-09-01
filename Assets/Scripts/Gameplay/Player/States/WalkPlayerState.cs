@@ -21,6 +21,7 @@ namespace Player
             entity.SnapToGround();
             entity.SlowDown();
             entity.Move();
+            entity.Jump();
             if (entity.input.GetMovement().sqrMagnitude == 0 && entity.lateralVelocity.sqrMagnitude < 0.01f)
             {
                 entity.states.Change<IdlePlayerState>();

@@ -17,5 +17,10 @@ namespace Player
         [Header("Fall")]
         public float gravity = 20f;
         public float snapForce = 3f;
+        
+        //----------------跳跃----------------
+        [Header("Jump")]
+        public float jumpHeight = 1.2f;
+        public float jumpBufferWindow = 0.15f;
     }
 }
