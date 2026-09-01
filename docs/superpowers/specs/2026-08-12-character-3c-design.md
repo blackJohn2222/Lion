@@ -141,6 +141,7 @@ Network / UI / Test → 不动
 
 - Enemy（继承式天然复用：`Enemy : Entity<Enemy>` / `EnemyState : EntityState<Enemy>` / 同一套 Manager/Stats/Events，Odyssey 已验证 8 条复用证据）
 - 更多状态/动作（照 Odyssey 加：Brake/Crouch/Dash/Spin/Glide/多段跳/土狼跳/短按矮跳...）——加状态 = 加类 + GetStateList 注册一行
+- **重力分段系统（Day 5 手感调优时评估）**：Odyssey 的 `Player.Gravity()` 三段式——上升用 `gravity`（小，跳跃上升轻）、下落用 `fallGravity`（大，下坠加速猛）、`gravityTopSpeed` 钳制最大下落速度（防无限加速穿模）。当前 Slice 2 用恒定重力，届时按此升级（Entity 原语加参数 + PlayerStats 加 3 字段）。**⚠️ 跳跃初速度推导基于上升段 `gravity`（`√(2 × jumpHeight × gravity)`），改重力分段时同步跳跃公式，勿沿用旧的恒定 gravity 值**
 - 交互链：`HandleContacts` 检测循环 + `IEntityContact` + 交互物（Spring/弹簧、Pole/爬杆、Hazard 等，走 OnContact 路由）
 - 战斗链：`Health` 组件 + `EntityHitbox` + PlayerEvents 扩充（OnHurt/OnDie）+ Player.ApplyDamage
 - 表现层（三挂钩模式，Odyssey 已验证）：A 订阅 `states.events.onChange`（动画/拖尾）、B 订阅 PlayerEvents/EntityEvents（音效/粒子）、C 每帧轮询 `IsCurrentOfType`（倾斜/相机）

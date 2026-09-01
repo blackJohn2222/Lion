@@ -95,13 +95,15 @@ event Action<ulong senderId, IMessage msg> OnMessageReceived;   // senderId：0=
 | ID | 消息 | 方向 |
 |---|---|---|
 | 1001 | JoinRequest | 客户端→服务器 |
-| 1002 | JoinResponse | 服务器→客户端 |
-| 1003 | PlayerStateSync | 双向 |
-| 1004 | ChatMessage | 双向 |
-| 1005 | DisconnectNotice | 双向 |
+| 1002 | PlayerStateSync | 双向 |
+| 1003 | ChatMessage | 双向 |
+| 1004 | DisconnectNotice | 双向 |
 | 2001 | PlayerJoinedNotice | 服务器→所有客户端 |
 | 2002 | PlayerLeftNotice | 服务器→所有客户端 |
 | 2003 | SnapshotMessage | 服务器→客户端 |
+| 2004 | JoinResponse | 服务器→客户端 |
+
+> 2026-08-19 与实现核对：JoinResponse 已挪入 2xxx 段（它本是服务器→客户端，符合分段原则，实现比原表更正确）
 
 ### 序列化（字典工厂，借鉴 Card 注册表模式）
 
@@ -166,8 +168,8 @@ public static class SerializeTool
 public class GameServer
 {
     private readonly INetworkTransport _transport;
-    private readonly Dictionary<ulong, PlayerInfo> _players = new();  // 玩家表
-    private ulong _nextPlayerId = 1;   // 玩家 ID 分配器（递增，永不重复）
+    private readonly Dictionary<ulong, string> _players = new();  // 玩家表（当前实现：只存名字；未来多房间/账号时升级为 PlayerInfo + userId/elo，见 matchmaking spec）
+    // 玩家 ID：当前实现 = 传输层连接 ID（SenderId）；原设计 _nextPlayerId++ 独立分配器推迟——多房间实施时评估（见 matchmaking spec 待定项）
     private readonly Dictionary<MessageType, Action<ClientConnection, IMessage>> _handlers = new();  // 双注册表分发（借鉴 Card）
 
     public void Start(int port);   // 启动服务器（绑定 transport 事件）
@@ -188,7 +190,7 @@ public class GameServer
 **SenderId 取值约定**：
 ```
 0    = 服务器（官方消息）
-1+   = 玩家（服务器 _nextPlayerId 分配）
+1+   = 玩家（传输层连接 ID，身份由连接决定）
 ```
 
 **事件签名**：`OnMessageReceived` 改为 `Action<ulong senderId, IMessage msg>`——传输层在 Data 事件里查连接表得出真实 senderId，作为事件参数带出：
@@ -241,7 +243,7 @@ void Dispatch(IMessage msg)
     → 按注册表分发 → BroadcastToClients（除 A 自己）→ B、C 收到
 ```
 
-- **玩家 ID 分配**：`_nextPlayerId++`，服务器权威的唯一 ID 来源；0 保留给服务器身份
+- **玩家 ID 分配**（2026-08-19 与实现核对）：当前实现 = 传输层连接 ID（SenderId，身份由连接决定）；0 保留给服务器身份。原设计稿的 `_nextPlayerId++` 独立分配器**推迟**——多房间实施时再评估（matchmaking spec 待定项）
 - **SenderId 权威**：传输层查连接表得出真实 senderId（可信来源），GameServer 覆盖 msg.SenderId——客户端伪造无效。这是权威的最基本防线
 
 ## 待办：位置校验（反作弊，Day 3 后做）
@@ -345,16 +347,16 @@ Step 6：Day 3 控制器接入 → Day 4 多人可见
 2. **Host 真实联调**（开发中随时验证）：一个 Editor 开 Host + 2 个实例加入，验证加入/离开广播、聊天互通、断线触发
 3. **独立服务器验证**（Day 5 收尾）：Dedicated Server 构建 headless，客户端连它，验证同一份 GameServer 代码在独立进程跑通
 
-## 9. 涉及修改的既有代码清单
+## 9. 涉及修改的既有代码清单（✅ 已全部实施，Day 2 完成）
 
-| 文件 | 改动 |
-|---|---|
-| `Assets/Scripts/Network/INetworkTransport.cs` | +2 事件 |
-| `Assets/Scripts/Network/IMessage.cs` | +SenderId 属性 |
-| `NgoAdapter.cs`（未建） | 按新接口实现空壳 |
-| `DEVELOPMENT_PLAN.md` | 网络设计节重写为多人版 |
-| `Game.Core` 全部 | **零改动**（机制与决策分离，改造不触碰地基） |
-| 消息类型文件（未建） | 按新协议建 |
+| 文件 | 改动 | 状态 |
+|---|---|---|
+| `Assets/Scripts/Network/INetworkTransport.cs` | +2 事件 | ✅ |
+| `Assets/Scripts/Network/IMessage.cs` | +SenderId 属性 | ✅ |
+| `NgoAdapter.cs` | 按新接口实现空壳 | ✅ 已建 |
+| `DEVELOPMENT_PLAN.md` | 网络设计节重写为多人版 | ✅ |
+| `Game.Core` 全部 | **零改动**（机制与决策分离，改造不触碰地基） | ✅ |
+| 消息类型文件 | 按新协议建 | ✅ 已建 |
 
 ## 10. 面试叙事更新
 

@@ -20,7 +20,7 @@
 - Day 3 只有 `IdlePlayerState`、`WalkPlayerState`、`FallPlayerState`；不创建 `JumpPlayerState`、Health、GameTags、接触扫描循环、多段跳或冲刺。
 - 角色层事件使用 `UnityEvent`；Core 的 `EventBus<T>` 继续负责系统间逻辑解耦。
 - 保留 Unity 初始化时生成的 `Assets/InputSystem_Actions.inputactions`；它没有现有代码或场景引用，不作为 Day 3 输入资产使用。
-- Day 3 新建 `Assets/Input/Player Input Actions.inputactions`，最终只包含 `Movement`、`Jump`、`Look`、`Pause` 四个动作。
+- Day 3 新建 `Assets/Examples/Input Actions/Player Input Actions.inputactions`，最终只包含 `Movement`、`Jump`、`Look`、`Pause` 四个动作。
 - Unity 生成的 `.meta` 文件由 Unity 编辑器生成，不手写。
 - 发现编译或运行错误时，先保留完整原文并停止修改，分析原因后等待用户审核。
 - 不自动执行 Git commit；只有用户明确要求时才提交。
@@ -128,7 +128,7 @@
 - Modify: `Assets/Scripts/Gameplay/Player/PlayerStateManager.cs`
 - Modify: `Assets/Scripts/Gameplay/Player/States/IdlePlayerState.cs`
 - Create: `Assets/Scripts/Gameplay/Player/States/WalkPlayerState.cs`
-- Create: `Assets/Input/Player Input Actions.inputactions`
+- Create: `Assets/Examples/Input Actions/Player Input Actions.inputactions`
 - Preserve unchanged: `Assets/InputSystem_Actions.inputactions`
 
 **Interfaces:**
@@ -149,7 +149,7 @@ Explain the input facade, ScriptableObject data-driven design, and the two-level
 
 - [ ] **Step 2: Create the minimal Player input asset**
 
-Create `Assets/Input/Player Input Actions.inputactions` in the Unity Input System editor. Leave the Unity template asset untouched. Do not add Attack, Interact, Crouch, Sprint, or other actions to the new asset.
+Create `Assets/Examples/Input Actions/Player Input Actions.inputactions` in the Unity Input System editor. Leave the Unity template asset untouched. Do not add Attack, Interact, Crouch, Sprint, or other actions to the new asset.
 
 - [ ] **Step 3: Implement movement data and facade**
 
@@ -215,7 +215,7 @@ User explains the difference between `isGrounded`, `FallPlayerState`, `EntityEve
 ### Task 5: Slice 3 跳跃动作与跳跃缓冲
 
 **Files:**
-- Modify: `Assets/Input/Player Input Actions.inputactions`
+- Modify: `Assets/Examples/Input Actions/Player Input Actions.inputactions`
 - Modify: `Assets/Scripts/Gameplay/Player/PlayerInputManager.cs`
 - Create: `Assets/Scripts/Gameplay/Player/PlayerEvents.cs`
 - Modify: `Assets/Scripts/Gameplay/Player/Player.cs`
@@ -257,7 +257,7 @@ User explains why Jump is a command/action, why Fall is a state, and how a buffe
 ### Task 6: Slice 4 第三人称相机
 
 **Files:**
-- Modify: `Assets/Input/Player Input Actions.inputactions`
+- Modify: `Assets/Examples/Input Actions/Player Input Actions.inputactions`
 - Modify: `Assets/Scripts/Gameplay/Player/PlayerInputManager.cs`
 - Create: `Assets/Scripts/Gameplay/ThirdPersonCamera.cs`
 
@@ -290,8 +290,8 @@ User explains the camera’s input path and why camera behavior is not a Player 
 
 **Files:**
 - Create through Unity Editor: `Assets/Scenes/Day3CharacterTest.unity`
-- Create through Unity Editor: `Assets/Gameplay/Stats/PlayerStats_Default.asset`
-- Use: `Assets/Input/Player Input Actions.inputactions`
+- Use: `Assets/Examples/Player Stats/PlayerStats.asset`（Slice 1 已创建；Slice 5 时确认引用与 jumpHeight 值）
+- Use: `Assets/Examples/Input Actions/Player Input Actions.inputactions`
 - Use: the completed Player, state manager, input manager, stats manager, and `ThirdPersonCamera` components
 
 **Interfaces:**
