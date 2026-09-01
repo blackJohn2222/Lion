@@ -18,3 +18,5 @@ MonoBehaviour:
   stopSpeed: 0.2
   gravity: 60
   snapForce: 3
+  jumpHeight: 1.8
+  jumpBufferWindow: 0.15
